@@ -1,0 +1,97 @@
+<html>
+	<div th:replace="~{fragments/navbar}"></div>
+
+<title> Weather Observations</title>
+<h1 th:text="${weathermsg}">  </h1>
+<h3 th:text="${name}">  </h3> 
+<h3 th:text="${time}">  </h3> 
+<h3 th:text="${currentObs.station}"> </h3> 
+<h3 th:text="${currentObs.name}"> </h3> 
+
+
+<table sborder="1" class = "table table-striped table-responsive-md">
+
+  <tr>
+			<td>Pres.</td>
+			<td th:text= "${#numbers.formatDecimal(currentObs.barometricPressure, 0, 2)}" ></td> 		
+ </tr>
+ 
+  <tr>
+ 		<td>Temp.</td>
+ 		<td th:text= "${#numbers.formatDecimal(currentObs.temperature, 0, 1)}" ></td> 
+
+ </tr>
+	
+  <tr>
+ 		<td>Dew Pt.</td>
+ 		<td th:text= "${#numbers.formatDecimal(currentObs.dewpoint, 0, 1)}" ></td> 
+
+ </tr>
+ 
+  <tr>
+ 		<td>Heat Index</td>
+ 		<td th:text= "${#numbers.formatDecimal(currentObs.heatIndex, 0, 1)}" ></td> 
+
+ </tr>
+ 
+  <tr>
+ 		<td>Relative Humidity</td>
+ 		<td th:text= "${#numbers.formatDecimal(currentObs.relativeHumidity, 0, 1)}" ></td> 
+
+ </tr>
+ 
+  <tr>
+ 		<td>Wind Speed</td>
+ 		<td th:text= "${#numbers.formatDecimal(currentObs.windSpeed, 0, 1)}" ></td> 
+
+ </tr>
+  <tr>
+ 		<td>Wind Dir</td>
+ 		<td th:text= "${#numbers.formatDecimal(currentObs.windDirection, 0, 1)}" ></td> 
+
+ </tr>
+ 
+  <tr>
+ 		<td>Wind Gust</td>
+ 		<td th:text= "${#numbers.formatDecimal(currentObs.windGust, 0, 1)}" ></td> 
+
+ </tr>
+ 
+ 
+  <tr>
+ 		<td>Visbility</td>
+ 		<td th:text= "${#numbers.formatDecimal(currentObs.visibility, 0, 1)}" ></td> 
+
+ </tr>
+
+
+  <tr>
+ 		<td>Conditions</td>
+ 		<td th:text= "${currentObs.textDescription}" ></td> 
+
+ </tr>
+ 
+ 
+ 
+ 
+ 
+ 
+  <tr>
+ 		<td>Time</td>
+ 		<td th:text= "${currentObs.timestamp}" ></td> 
+
+ </tr>
+ 
+  	
+</table>
+	
+			
+<pre>
+	
+	
+</pre>
+	
+<img th:src="@{${radarUrl}}" alt="wx">
+
+
+</html>

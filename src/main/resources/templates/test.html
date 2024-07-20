@@ -1,0 +1,19 @@
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}" >
+
+        <title>City search</title>
+    </head>
+    <body>
+
+		<select id="someId">
+		    <option selected="selected" value="">Choose one...</option>
+		    <option th:each="object : ${listStationStr}" 
+		            th:value="${object}" th:text="${object}">Options</option>
+		</select>
+		
+</html>
