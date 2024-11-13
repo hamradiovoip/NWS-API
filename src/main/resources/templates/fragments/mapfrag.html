@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+	
+<head>
+	<meta charset="utf-8">
+	
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+	<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
+	
+<!--	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+	
+	<link rel="stylesheet" href="/static/scripts/lib/leaflet/leaflet.css" />
+	<script src="/static/scripts/lib/leaflet/leaflet.js"></script>
+	-->
+
+	<style>
+		html, body {
+			height: 100%;
+			margin: 0;
+		}
+		.leaflet-container {
+			height: 400px;
+			width: 600px;
+			max-width: 100%;
+			max-height: 100%;
+		}
+		
+		.my-label {
+		    position: absolute;
+		    width:100px;
+		    font-size:20px;
+		}
+
+	</style>
+
+	
+</head>
+<body>
+	
+
+<!--	<div id="mapid" th:attr="style=${size}"></div>-->
+<div id="mapid" style="width: 600px; height: 600px;"></div>
+
+
+
+<script th:inline="javascript">
+	var mylat = [[${lat}]] ;
+	var mylon = [[${lon}]] ;
+	var mapzoom =  [[${mapzoom}]] ;		
+	var mymap = L.map('mapid').setView([mylat, mylon], mapzoom);	
+
+	new L.tileLayer(
+			'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				maxZoom : 19
+			}).addTo(mymap);
+
+
+	                  
+	mymap.on('click', function(e)
+	{
+	  var lt = String(e.latlng.lat),  lg = String(e.latlng.lng);
+	  var name = "link";	
+	  var forecast = '<a href="/wx/?lat=' + lt + '&lon=' + lg + '">' + "FORECAST" + '</a>' + '<p>';
+	  var map = '<a href="/map/?lat=' + lt + '&lon=' + lg + '">' + "MAP" + '</a><p>' ;
+	  var meteo = '<a href="/meteo/?lat=' + lt + '&lon=' + lg + '">' + "METEO" + '</a><p>' ;	  
+	  var displaylinks = forecast + map + meteo;
+	  
+	  var popup = L.popup().setLatLng(e.latlng).setContent(displaylinks).openOn(mymap);	   
+	  
+	});
+	
+		
+	L.marker([mylat, mylon]).addTo(mymap).bindPopup("Center");
+	
+	
+</script>
+ <pre>
+	
+	
+	
+ </pre>
+</body>
+</html>
