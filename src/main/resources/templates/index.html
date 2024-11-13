@@ -1,16 +1,16 @@
+<!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-	
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex, nofollow">	
 	<title> Weather Home</title>
-  </head>
+</head>
   
+<body style="margin:30;padding:2">
 
 <div th:replace="~{fragments/navbar}"></div>
-<!-- <div th:replace="fragments/navbar::navbar"></div>  -->
- 
  
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
@@ -19,15 +19,18 @@
 
 <img src="https://radar.weather.gov/ridge/standard/CONUS_loop.gif" width="800" ><P>
 
-
 <img src="https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/ne/GEOCOLOR/1200x1200.jpg"  width="800" ><P>
 
-<img src="https://www.wpc.ncep.noaa.gov//noaa/noaa.gif"  width="800" ><P>
-	&nbsp; &nbsp; 
-  <hr>
+<img src="https://www.wpc.ncep.noaa.gov/noaa/noaa.gif"  width="800" ><P>
+ 
+<img src="https://www.wpc.ncep.noaa.gov/qpf/94ewbg.gif"  width="800" ><P>
+ 	
+<hr>
+
+<div th:replace="~{fragments/standalonemap}"></div>
 	
-	
-  <th:block th:replace="~{fragments/footer}"/>
+<th:block th:replace="~{fragments/footer}"/>
   
-  &nbsp; &nbsp; 	&nbsp; &nbsp; 
+</body>
 </html>
+

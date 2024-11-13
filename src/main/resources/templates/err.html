@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head>
+	<meta name="robots" content="noindex, nofollow" />
+	<meta charset="utf-8">   
+<title> [[${title}]] </title>
+	
+  </head>
+<body>
+   <div th:replace="~{fragments/navbar}"></div>
+   
+   
+<!--   <h3 style="color: red">Error, something went wrong!</h3>  -->
+    
+   <h4 th:text="${error}"></h4>
+          
+<h5>Go to Home Page : <a th:href="@{/}">Home</a></h5>
+
+</body>
+
+</html>

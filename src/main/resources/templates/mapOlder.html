@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+	
+<head>
+	<base target="_top">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex, nofollow" />
+	<title>Map</title>
+	
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+	<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+<!--	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+	
+	<link rel="stylesheet" href="/static/scripts/lib/leaflet/leaflet.css" />
+	<script src="/static/scripts/lib/leaflet/leaflet.js"></script>
+	-->
+
+	<style>
+		html, body {
+			height: 100%;
+			margin: 0;
+		}
+		.leaflet-container {
+			height: 400px;
+			width: 600px;
+			max-width: 100%;
+			max-height: 100%;
+		}
+		
+		.my-label {
+		    position: absolute;
+		    width:100px;
+		    font-size:20px;
+		}
+
+	</style>
+
+	
+</head>
+<body>
+	<div th:replace="~{fragments/navbar}"></div>
+
+	
+<div id="mapid" style="width: 800px; height: 500px;"></div>
+
+
+
+<script th:inline="javascript">
+
+	
+	var mylat = [[${lat}]] ;
+	var mylon = [[${lon}]] ;
+		
+	var mymap = L.map('mapid').setView([mylat, mylon],7);	
+	
+	new L.tileLayer(
+			'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				maxZoom : 19
+			}).addTo(mymap);
+
+    var data = [[${pointList}]] ;
+	
+
+    // var list=$('#pointList').val();
+    console.log("list: "+ data.length);
+	
+    for(var i=0; i< data.length;i++) {
+
+
+        if(data[i].lat !== null && data[i].lon !== "") {
+            // window.alert(data[i]);
+
+			
+			
+            L.marker([data[i].lat, data[i].lon]).addTo(mymap)
+                .bindPopup(
+                    "Station: "+ data[i].stationName+'<br><b>'
+					+"name: "+data[i].stationIdentifier+'<br><b>'
+                    +"temp: "+data[i].temperature+'<br><b>'
+                    +"conditions : " +data[i].textDescription+'</b>'
+                );
+        }
+    }
+	
+	
+	
+	
+</script>
+<h3 th:text="${officeName}">  </h3> 
+
+&nbsp; &nbsp; 
+</body>
+</html>
