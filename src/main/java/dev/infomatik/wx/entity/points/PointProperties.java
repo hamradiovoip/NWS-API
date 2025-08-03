@@ -67,7 +67,7 @@ public class PointProperties {
 	private RelativeLocation relativeLocation;  //": {
 	
 //	@JsonProperty("properties")
-//	private LocationProperties	properties;
+//	private LocationMenuProperties	properties;
 
 	private String forecastZone;  //": "https://api.weather.gov/zones/forecast/CAZ518",
 	private String county;  //": "https://api.weather.gov/zones/county/CAC069",

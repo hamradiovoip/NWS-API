@@ -21,6 +21,10 @@
 
 	
 <a th:href="@{${radarLink}}"  target="_blank" > Local Radar Link </a> <p>
+	
+			
+		
+<h3 th:text="${time}">  </h3>
 
 <pre>
 	
@@ -50,8 +54,7 @@
 	            
 				<td th:text="${period.windSpeed}"></td>
 				<td th:text="${period.shortForecast}"></td>
-				<td th:text="${period.probabilityOfPrecipitation.value}"></td> 
-	
+				<td th:text="${period.probabilityOfPrecipitation.value}"></td> 	
   </tr>
   </tbody>
 </table>
@@ -64,11 +67,11 @@
 <img th:src="@{${radarUrl}}" alt="wx"><body>
 	
 
-	
-<h3 th:text="${time}">  </h3>
-
-
 <div th:replace="~{fragments/mapfrag}"></div>
+
+<img th:src="@{${satLink}}" alt="wx"><body>
+
+
 <pre>
 	
 	

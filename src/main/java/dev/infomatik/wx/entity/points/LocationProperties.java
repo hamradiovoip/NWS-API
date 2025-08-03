@@ -90,7 +90,7 @@ public class LocationProperties {
 
 	@Override
 	public String toString() {
-		return "LocationProperties [city=" + city + ", state=" + state + ", distance=" + distance + ", bearing="
+		return "LocationMenuProperties [city=" + city + ", state=" + state + ", distance=" + distance + ", bearing="
 				+ bearing + "]";
 	}
 

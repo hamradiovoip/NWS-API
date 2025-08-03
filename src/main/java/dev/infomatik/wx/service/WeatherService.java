@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import dev.infomatik.wx.entity.LocationMenuProperties;
 import dev.infomatik.wx.entity.Periods;
 import dev.infomatik.wx.entity.Properties;
 import dev.infomatik.wx.entity.alerts.Features;
@@ -56,7 +57,14 @@ public class WeatherService {
 
 	@Value("${maxmap}")
 	private int maxMarkersDisplayed;
+	
+	@Value("${alerts.list}")
+	public List<String> alertList;
+	
 
+	private	List <LocationMenuProperties> locationPropsList;
+	
+	
 	/** */
 	//	@Autowired
 	//	private WFOIdentifiers wfo;
@@ -73,6 +81,22 @@ public class WeatherService {
 		//			// TODO Auto-generated catch block
 		//			e.printStackTrace();
 		//		}
+	}
+
+
+	/**
+	 * @return the alertList
+	 */
+	public List<String> getAlertList() {
+		return alertList;
+	}
+
+
+	/**
+	 * @param alertList the alertList to set
+	 */
+	public void setAlertList(List<String> alertList) {
+		this.alertList = alertList;
 	}
 
 
@@ -104,6 +128,20 @@ public class WeatherService {
 		this.favoriteStations = favoriteStations;
 	}
 
+	//76.86035156250001
+	/**
+	 * Check
+	 * @return
+	 */
+	private boolean validate(double lat, double lon) {
+		
+		
+		
+		return false;
+		
+	}
+	
+	
 
 	/**
 	 * Get observation for closet station.
@@ -260,7 +298,7 @@ public class WeatherService {
 	
 
 	/**
-	 * Get LocationProperties from GPS coords.
+	 * Get LocationMenuProperties from GPS coords.
 	 * @return
 	 */
 	public LocationProperties getLocationData(double lat, double lon) {
@@ -548,7 +586,7 @@ public class WeatherService {
 	 * 
 	 * @param lat
 	 * @param lon
-	 * @return
+	 * @return Properties
 	 * @throws IOException
 	 */
 
@@ -558,6 +596,11 @@ public class WeatherService {
 		if ( (lat <= 90 && lat > -90) && (lon > -180  && lon <= 180) )
 		{
 			sUrl = baseUrl + "/points/"+ lat + ","+ lon;
+			//https://api.weather.gov
+			
+			System.out.println(sUrl);
+			
+			
 		}
 		else {
 			sUrl =  baseUrl + "/points/"+ 38.89 + ","+ -77.04;
@@ -587,6 +630,9 @@ public class WeatherService {
 		String gridId = pointProperties.getGridId();
 
 		sUrl = baseUrl + "/gridpoints/"+ gridId +"/" + gridX + "," + gridY ;
+		
+		System.out.print("gridPts =" + sUrl);
+		
 		// 97 76  LWX
 		url = new URL(sUrl);
 
@@ -620,7 +666,7 @@ public class WeatherService {
 	 * Get object station from station name.
 	 * 
 	 * @param station
-	 * @return
+	 * @return Class Stations
 	 * @throws JsonProcessingException
 	 * @throws IllegalArgumentException
 	 */
@@ -660,7 +706,7 @@ public class WeatherService {
 	 * 
 	 * @param lat
 	 * @param lon
-	 * @return
+	 * @return List of stations
 	 * @throws IOException
 	 */
 
@@ -732,7 +778,7 @@ public class WeatherService {
 	/**
 	 * Get json node
 	 * @param url
-	 * @return
+	 * @return JSON Node
 	 * @throws IOException
 	 */
 	public static JsonNode getJsonNode(URL url) throws IOException {
@@ -771,7 +817,7 @@ public class WeatherService {
 	/**
 	 * Read URL (JSON data) and return as string.
 	 * @param url
-	 * @return
+	 * @return JSON data
 	 */
 	public static String stream(URL url) {
 
@@ -829,13 +875,13 @@ public class WeatherService {
 
 
 	/**
-	 * return distance between this location and that location
+	 * return distance between 2 locations 
 	 * measured in statute miles
 	 * @param latitude
 	 * @param longitude
 	 * @param latitude2
 	 * @param longitude2
-	 * @return distance between this location and that location
+	 * @return Distance between 2 locations (GPS coords) in statute miles
 	 */
 
 	public double distanceTo(double latitude, double longitude, double latitude2, double longitude2) {
@@ -858,7 +904,7 @@ public class WeatherService {
 	/**
 	 * celsius to fahrenheit.
 	 * @param celsius
-	 * @return
+	 * @return fahrenheit
 	 */
 	public double tempConvert(double celsius) {
 
@@ -870,7 +916,7 @@ public class WeatherService {
 	/**
 	 * km to miles.
 	 * @param km
-	 * @return
+	 * @return Miles
 	 */
 	public double kmToMiles(double km) {
 		double miles = km / 1.6;
@@ -880,7 +926,7 @@ public class WeatherService {
 
 	/**
 	 * For standard date timestamp string.
-	 * @return
+	 * @return date
 	 */
 	public String getLocalDateTime() {
 		LocalDateTime date = LocalDateTime.now();
@@ -893,11 +939,11 @@ public class WeatherService {
 	/**
 	 * 1m ==  3.28084 ft
 	 * @param meter
-	 * @return
+	 * @return feet
 	 */
 	public double meterToFeet(double meters) {
-		double miles = meters *  3.28084;
-		return miles;
+		double ft = meters *  3.28084;
+		return ft;
 	}
 
 	/**
@@ -957,5 +1003,70 @@ public class WeatherService {
 		return localTime;
 	}
 
+	
+
+
+	/**
+	 * 
+	 * @param fileName
+	 * @return
+	 */
+	private InputStream getFileAsIOStream(final String fileName) 
+	{
+		InputStream ioStream = this.getClass()
+				.getClassLoader()
+				.getResourceAsStream(fileName);
+
+		if (ioStream == null) {
+			throw new IllegalArgumentException(fileName + " is not found");
+		}
+		return ioStream;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 * @throws IOException
+	 * @throws FileNotFoundException
+	 */
+	public List <LocationMenuProperties> readLocationData() throws IOException, FileNotFoundException {
+
+		List <LocationMenuProperties> locationPropsList =  new ArrayList<>();
+
+		WeatherService instance  = new WeatherService();
+		InputStream is = instance.getFileAsIOStream("data/locationprop.txt");
+
+		try (InputStreamReader isr = new InputStreamReader(is); 
+				BufferedReader br = new BufferedReader(isr);) 
+		{
+			String line;
+			while ((line = br.readLine()) != null) {
+
+				String COMMA_DELIMITER = ",";
+				String[] values = line.split(COMMA_DELIMITER );
+
+				LocationMenuProperties locationProp = new LocationMenuProperties();
+				//Tuscon AZ, 32.2769, -110.7472
+
+				//System.out.println(values[0]);			
+				
+				locationProp.setLocName(values[0]);				
+				locationProp.setLatitude(Double.parseDouble(values[1]));
+				locationProp.setLongitude(Double.parseDouble(values[2]));
+
+				locationPropsList.add(locationProp);		
+			}
+			is.close();
+		} catch (IOException e1) {
+
+			e1.printStackTrace();
+		}
+
+
+		this.locationPropsList= locationPropsList;
+
+		return locationPropsList;		
+
+	}
 
 }

@@ -19,9 +19,12 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import dev.infomatik.wx.entity.Elevation;
+import dev.infomatik.wx.entity.LocationMenuProperties;
 import dev.infomatik.wx.entity.MapPoints;
 import dev.infomatik.wx.entity.Periods;
 import dev.infomatik.wx.entity.Properties;
@@ -71,6 +74,52 @@ public class WeatherController {
 
 	@Autowired
 	private ResourceLoader resourceLoader;
+
+
+
+	/**
+	 * Check if lat and lon are valid and not large numbers, buffer overflow etc.
+	 * Checking for potential buffer overflows when dealing with double values in Java involves ensuring that the data being handled does not exceed the allocated space.
+	 *  Since a double occupies a fixed size of 64 bits (8 bytes), 
+	 *  buffer overflows are typically not a concern in the same way as with character arrays or strings. 
+	 * @return
+	 */
+	private double validate(double number) {
+
+
+		DecimalFormat df = new DecimalFormat("#.#######");
+		String formatted = df.format(number);
+		double truncatedNumber = Double.parseDouble(formatted);		
+
+		return truncatedNumber;
+
+	}
+	/**
+	 * 
+	 * @param str
+	 * @return
+	 */
+	public static boolean isValidDouble(String str) {
+		try {
+			Double.parseDouble(str);
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+
+
+	/**
+	 * 
+	 * @return
+	 */
+	@RequestMapping("/robots.txt")
+	@ResponseBody
+	public String robots() {
+		return "User-agent: *\n" +
+				"Disallow: /";
+	}
+
 
 	/**
 	 * Show all alerts from US state.
@@ -201,13 +250,14 @@ public class WeatherController {
 		List<Periods> periods = new ArrayList<Periods>();
 		//List<Stations> stations = service.getStations(lat, lon);
 
-
 		Properties gridProp ;
 		String elevation = "unk";
 
 		try {
 			gridProp = service.getGridProperties(lat, lon);
 			Elevation elevat = gridProp.getElevation();
+
+
 			double elevationDouble = service.meterToFeet(elevat.getValue());					
 			DecimalFormat df = new DecimalFormat("###,###,###");
 			elevation = df.format(elevationDouble) + " ft";
@@ -216,7 +266,7 @@ public class WeatherController {
 			System.out.println("Problem getting grid properties, try reloading");			
 		}		
 
-		String elevationStr = "Elevation = "+ elevation + " ft";
+		String elevationStr = "Area Ave. Elevation = "+ elevation; // grid elevation not exact gps
 
 		try {
 			periods = service.getForecastData(newUrl);
@@ -233,6 +283,9 @@ public class WeatherController {
 		String radarImgUrl = "https://radar.weather.gov/ridge/standard/"+ radarStation + "_loop.gif";
 		String radarLink = "https://radar.weather.gov/station/"+ radarStation +"/standard";
 
+		//https://cdn.star.nesdis.noaa.gov/GOES19/ABI/SECTOR/eus/GEOCOLOR/2000x2000.jpg east coast
+		String satLink = "https://cdn.star.nesdis.noaa.gov/GOES19/ABI/CONUS/GEOCOLOR/1250x750.jpg"; //conus
+
 		String cwa =  properties.getCwa();		
 
 		RelativeLocation rl = properties.getRelativeLocation();
@@ -242,7 +295,6 @@ public class WeatherController {
 		String city = lp.getCity();
 		String state = lp.getState();
 		String location = city + ", " + state;
-
 
 		String officeName = "Closest Weather office: " + service.getOfficeName(cwa);
 		String detailslink = "https://forecast.weather.gov/product.php?site=" + cwa + "&issuedby=" + cwa + "&product=AFD&format=CI&version=1&glossary=1";
@@ -256,9 +308,11 @@ public class WeatherController {
 		model.addAttribute("properties", properties);
 		model.addAttribute("radarUrl", radarImgUrl);
 		model.addAttribute("radarLink", radarLink);
+		model.addAttribute("satLink", satLink);
+
 		model.addAttribute("lat", lat);
 		model.addAttribute("lon", lon);
-		model.addAttribute("mapzoom", "6");
+		model.addAttribute("mapzoom", "9");
 
 		model.addAttribute("name", officeName);
 
@@ -270,11 +324,8 @@ public class WeatherController {
 		model.addAttribute("link", detailslink);
 		model.addAttribute("detailstext", "Area Forecast Discussion");	
 
-		//	System.out.println("return wx");
 		return "wx";
-
 	}
-
 
 
 	/**
@@ -319,7 +370,6 @@ public class WeatherController {
 		model.addAttribute("name", name);	
 		model.addAttribute("weathermsg", "Observations");
 
-		//System.out.println("return obs");
 		return "obs";
 
 	}
@@ -510,14 +560,11 @@ public class WeatherController {
 		String radarStation = properties.getRadarStation();// <img src="https://radar.weather.gov/ridge/standard/KLWX_loop.gif">
 		String radarUrl = "https://radar.weather.gov/ridge/standard/"+ radarStation + "_loop.gif";
 
-
 		model.addAttribute("radarUrl", radarUrl);
 		model.addAttribute("currentObs", currentObs);			
 		model.addAttribute("weathermsg", "Observations");
 
-		System.out.println("return obs");
 		return "station";
-
 	}
 
 
@@ -543,12 +590,13 @@ public class WeatherController {
 
 		Properties gridProp ;
 		String elevation = "unk";
+		boolean US_flag = true;
 
 		try {
 			gridProp = service.getGridProperties(lat, lon);
-			
+
 			if(gridProp == null) {
-				
+
 				model.addAttribute("error", "Problem with getting grid data, try reloading");		
 				return "err";
 			}
@@ -558,7 +606,8 @@ public class WeatherController {
 			elevation = df.format(elevationDouble) + " ft";
 
 		} catch (IOException e) {
-			System.out.println("Problem getting grid properties, try reloading");			
+			System.out.println("Problem getting grid properties, try reloading");
+			US_flag = false;
 		}
 
 
@@ -566,17 +615,22 @@ public class WeatherController {
 		//System.out.println("calling meteo for data");
 
 		OpenMeteoService meteo = new OpenMeteoService();		
-
-
-		LocationProperties locationProp = service.getLocationData(lat, lon);
 		String locationStr = "local";
-		if (locationProp !=null) {
-			//double meters = locationProp.getDistance().getValue();
-			//double distance = service.meterToFeet(meters);
 
-			locationStr = "Closest town: "+ locationProp.getCity() + ", " +
-					locationProp.getState();		
+		if(US_flag) {
+			LocationProperties locationProp = service.getLocationData(lat, lon);
 
+			if (locationProp !=null) {
+				//double meters = locationProp.getDistance().getValue();
+				//double distance = service.meterToFeet(meters);
+
+				locationStr = "Closest town: "+ locationProp.getCity() + ", " +
+						locationProp.getState();		
+
+			}
+		}
+		else {
+			locationStr = "outside US";
 		}
 
 		OpenMeteoEntity ome  = meteo.getData(lat,lon); 
@@ -588,7 +642,7 @@ public class WeatherController {
 		List <String> sunSet = daily.getSunset();
 		String sr = sunRise.get(0);
 		String ss = sunSet.get(0);
-		
+
 		List <Double> daylightList = daily.getDaylight_duration();
 		List <Double> sunDurationList = daily.getSunshine_duration();
 		Double daylightDouble = daylightList.get(0)/60/60;
@@ -597,34 +651,44 @@ public class WeatherController {
 		DecimalFormat df = new DecimalFormat("###,###,###.##");
 		String daylight = df.format(daylightDouble) + " hours";
 		String sunlight = df.format(sunlightDouble) + " hrs";
-		
-		
+
+
 		/* ==========  Time   =============== */
 		//String datetime = "2021-12-16T16:22:34";
 		LocalDateTime srTime = LocalDateTime.parse(sr,DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 		LocalDateTime ssTime = LocalDateTime.parse(ss,DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
 		// adjust to local time for sunset etc
-		PointProperties properties = service.getPointsData(lat, lon);		
-		String timezone = properties.getTimeZone();
+		String timezone = "";
+		PointProperties properties = service.getPointsData(lat, lon);	
+		if(US_flag) {
+
+			timezone = properties.getTimeZone();
+		}
+		else {
+
+			//todo
+			timezone =  "unk";			
+		}
+
 
 		TimeZone mapTimezone = TimeZone.getTimeZone(timezone);	//TODO might not need		
 		TimeZone local= TimeZone.getDefault();	//TODO	might not need
-		
+
 		TimeZone localTime = TimeZone.getTimeZone(timezone);
-		
+
 		String tz = localTime.getID();
-		
+
 		int i = localTime.getRawOffset();
 
 		int utcOffset = 5; // TODO DST vs Std Time
-		
+
 		int offsetSr = ((i/1000/60/60)* -1) - utcOffset;
 		LocalDateTime correctedSrTime  = srTime.minusHours(offsetSr);
-		
+
 		int offsetSs = ((i/1000/60/60)* -1) - utcOffset;
 		LocalDateTime correctedSsTime  = ssTime.minusHours(offsetSs);
-		
+
 		// desired output format
 		// String AUTH_DATE_PATTERN = "MM/dd/yyyy HH:mm:ss";
 		String AUTH_DATE_PATTERN = " HH:mm:ss";
@@ -662,7 +726,7 @@ public class WeatherController {
 		currentObs.setBarometricPressure(cur.getPressure_msl() * 0.0295301); // 1 pascal [Pa] = 0.000296133971008484 in
 
 		currentObs.setTimestamp(cur.getTime());
-		currentObs.setName(locationStr);
+		//	currentObs.setName(locationStr);
 		currentObs.setHeatIndex(cur.getApparent_temperature());
 		currentObs.setRelativeHumidity(cur.getRelative_humidity_2m());
 		currentObs.setWindSpeed(cur.getWind_speed_10m());
@@ -687,7 +751,6 @@ public class WeatherController {
 		model.addAttribute("timezone", tz);	
 
 		return "obsMeteo";
-
 	}
 
 
@@ -787,10 +850,8 @@ public class WeatherController {
 		//model.addAttribute("radarUrl", radarUrl);
 		//model.addAttribute("name", name);	
 		model.addAttribute("weathermsg", "List of Favorite Stations");
-		//System.out.println("return stations" + obsList);
 
 		return "menu/stations";
-
 	}
 
 
@@ -804,7 +865,11 @@ public class WeatherController {
 
 	@GetMapping("/forecast/")
 	public String forecast(Model model) throws IOException { 
-		
+
+		List <LocationMenuProperties> prop = service.readLocationData();
+		model.addAttribute("title", "Custom Forecast Locations");			
+		model.addAttribute("prop", prop);		
+
 		return "menu/forecasts";
 
 	}
@@ -820,7 +885,10 @@ public class WeatherController {
 	@GetMapping("/alerts/")
 	public String alerts(Model model) throws IOException { 
 
-		System.out.println("return alerts");
+		List <LocationMenuProperties> prop = service.readLocationData();
+		model.addAttribute("title", "Custom Forecast Location List");			
+		model.addAttribute("states", service.alertList);	
+
 		return "menu/alerts";
 
 	}
@@ -835,6 +903,11 @@ public class WeatherController {
 
 	@GetMapping("/liststations/")
 	public String liststations(Model model) throws IOException { 
+
+		List <LocationMenuProperties> prop = service.readLocationData();
+		model.addAttribute("title", "Custom Forecast Location List");			
+		model.addAttribute("prop", prop);	
+
 
 		return "menu/liststations";
 
@@ -872,6 +945,12 @@ public class WeatherController {
 
 	@GetMapping("/maplist/")
 	public String maplist(Model model) throws IOException { 
+
+
+		List <LocationMenuProperties> prop = service.readLocationData();
+		model.addAttribute("title", "Custom Map List");			
+		model.addAttribute("prop", prop);	
+
 		return "menu/maplist";
 
 	}
@@ -1014,7 +1093,7 @@ public class WeatherController {
 		int i = 0;
 
 		for (String element : listStationStr) {
-			
+
 			Stations station = stations.get(i);
 			dev.infomatik.wx.entity.gridpoints.Properties p = station.getProperties(); 
 			String name = p.getName();
@@ -1083,12 +1162,12 @@ public class WeatherController {
 		List <Geometry> geoList = new ArrayList<Geometry>();
 		List <MapPoints> pointList = new ArrayList<MapPoints>();		
 
-		
+
 		Stations station1;
 
 		for (String station : listStationStr) {
 			StationProperties  sp = service.getObsProperties(station);
-			
+
 			station1 = service.getStation(station);
 			geoList.add(station1.getGeometry());			
 			stationList.add(station1);		
@@ -1107,20 +1186,20 @@ public class WeatherController {
 			point.setStationName(station);
 			point.setTemperature(temp);
 			point.setTextDescription(sp.getTextDescription());
-		//	point.setStationIdentifier(name); // "English" name
-			
+			//	point.setStationIdentifier(name); // "English" name
+
 			pointList.add(point);
 
 
 		}
-		
+
 		model.addAttribute("lat", "40");
 		model.addAttribute("lon", "-99");
 		model.addAttribute("officeName", " ");
 		model.addAttribute("pointList", pointList);
 		model.addAttribute("size", "width: 1200px; height: 1000px;");
 		model.addAttribute("zoom", "3");
-				
+
 		return "map";
 
 	}
@@ -1151,6 +1230,11 @@ public class WeatherController {
 
 	@GetMapping("/meteolist/")
 	public String meteo(Model model) throws IOException { 
+
+
+		List <LocationMenuProperties> prop = service.readLocationData();
+		model.addAttribute("title", "Custom Meteo Locations");			
+		model.addAttribute("prop", prop);	
 
 		return "menu/meteolist";
 
@@ -1189,7 +1273,7 @@ public class WeatherController {
 		String dateTime = service.getLocalDateTime(); 
 		Resource fileResource = resourceLoader.getResource("classpath:data/us/place-city.ndjson");
 		String s =fileResource.getFilename();
-//		System.out.println("filename=" + s);
+		//		System.out.println("filename=" + s);
 		model.addAttribute("time", dateTime);	
 		return "test";
 	}

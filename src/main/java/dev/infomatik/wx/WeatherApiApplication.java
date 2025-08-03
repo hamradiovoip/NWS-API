@@ -5,7 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
 
-
 /**
  * Application/API that creates weather pages, json data comes from:<BR> 
  * https://www.weather.gov/documentation/services-web-api
