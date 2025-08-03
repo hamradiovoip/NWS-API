@@ -1,0 +1,12 @@
+Bombay Hook, 39.2592, -75.4726
+Cape May, 38.9899, -74.8922
+Salton Sea, 33.3108, -115.8400
+Anchorage AK, 61.2036, -149.9099
+San Luis Obispo, 35.28, -120.672
+Death Valley, 36.228, -116.779
+Nome AK, 64.502,-165.390
+Tuscon AZ, 32.2769, -110.7472
+Hawk Mt, 40.645365, -75.9832163
+Allagash ME, 47.0957,-69.0418
+Fortuna ND, 48.907, -103.786
+Sumas WA, 48.997, -122.269
