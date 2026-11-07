@@ -1,24 +1,29 @@
 <!DOCTYPE html>
 <html>
-	<head>
-	   <meta name="robots" content="noindex, nofollow" />
-  	   <meta charset="utf-8">   	
-	</head>
-	 	
+
+<head>
+	<meta name="robots" content="noindex, nofollow" />
+	<meta charset="utf-8">
+	<!-- Sets the referrer policy to origin for the entire page -->
+	<meta name="referrer" content="origin">
+	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
+</head>
+
 <div th:replace="~{fragments/navbar}"></div>
 <title> Weather Forecast</title>
 
 
-<h1 th:text="${weathermsg}">  </h1> 
+<h1 th:text="${weathermsg}"> </h1>
 
-<h1 th:text="${url}">  </h1> 
+<h1 th:text="${url}"> </h1>
 
 
 <pre>
-	
-	
+
+
 </pre>
 <img src="https://radar.weather.gov/ridge/standard/KLWX_loop.gif">
 
+<th:block th:replace="~{fragments/footer}" />
 
 </html>

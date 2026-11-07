@@ -1,6 +1,8 @@
 package dev.infomatik.wx.controller;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.URI;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.time.LocalDateTime;
@@ -8,20 +10,36 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.ModelAndView;
+import jakarta.validation.constraints.Size;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 
 import dev.infomatik.wx.entity.Elevation;
 import dev.infomatik.wx.entity.LocationMenuProperties;
@@ -42,7 +60,12 @@ import dev.infomatik.wx.openmeteo.OpenMeteoService;
 import dev.infomatik.wx.openmeteo.entity.Current;
 import dev.infomatik.wx.openmeteo.entity.Daily;
 import dev.infomatik.wx.openmeteo.entity.OpenMeteoEntity;
+import dev.infomatik.wx.service.TimezoneMapper;
 import dev.infomatik.wx.service.WeatherService;
+import dev.infomatik.wx.sun.LocationSunCalc;
+import dev.infomatik.wx.sun.SolarEventCalculator;
+import dev.infomatik.wx.sun.SunriseSunsetCalculator;
+import dev.infomatik.wx.sun.SunriseSunsetCalculator;
 
 
 
@@ -52,17 +75,22 @@ import dev.infomatik.wx.service.WeatherService;
 
 
 @Controller
+@Validated // Required for method parameter validation
 @JsonIgnoreProperties
 @RequestMapping("/")
 public class WeatherController {
 
 	/** NWS base url TODO put in prop file */
 	final String baseUrl = "https://api.weather.gov";
+	
+	private static final Logger log = LoggerFactory.getLogger(WeatherController.class);
 
 	/**
 	 * 
 	 */
 	public final static double AVERAGE_RADIUS_OF_EARTH = 6371;
+
+	private static String latLonErrorStr = "Error: lat or long out of range";
 
 	@Autowired
 	private WeatherService service;
@@ -75,7 +103,10 @@ public class WeatherController {
 	@Autowired
 	private ResourceLoader resourceLoader;
 
-
+	  // List of extension footprints used by scanners
+    private static final List<String> BLACKLISTED_EXTENSIONS = List.of(
+            ".php", ".env", ".git", ".yaml", ".yml", ".bak", ".ini", ".conf", ".sql"
+    );
 
 	/**
 	 * Check if lat and lon are valid and not large numbers, buffer overflow etc.
@@ -85,8 +116,6 @@ public class WeatherController {
 	 * @return
 	 */
 	private double validate(double number) {
-
-
 		DecimalFormat df = new DecimalFormat("#.#######");
 		String formatted = df.format(number);
 		double truncatedNumber = Double.parseDouble(formatted);		
@@ -94,6 +123,8 @@ public class WeatherController {
 		return truncatedNumber;
 
 	}
+	
+	
 	/**
 	 * 
 	 * @param str
@@ -107,44 +138,61 @@ public class WeatherController {
 			return false;
 		}
 	}
-
+   
 
 	/**
 	 * 
 	 * @return
 	 */
-	@RequestMapping("/robots.txt")
+	@GetMapping("/robots.txt")
 	@ResponseBody
-	public String robots() {
+	public String robots(HttpServletResponse response,HttpServletRequest request) {
+		log.info("robots");
+				
+		System.out.println("robots remote ip address "+ request.getRemoteAddr());	
+		log.info("robots remote ip address "+ request.getRemoteAddr());
 		return "User-agent: *\n" +
 				"Disallow: /";
 	}
 
+	/**
+	 * 
+	 * @param request
+	 * @param model
+	 * @return
+	 */
+    @GetMapping("/")
+    public String index(HttpServletRequest request, Model model) {
+        // Because of your application.properties, this now returns the real IP
+        
+        log.info("Index remote ip address: " + request.getRemoteAddr());
+        
+		String dateTime = service.getLocalDateTime();
+		model.addAttribute("time", dateTime);	
+        return "index";
+    }
+    
+    
 
 	/**
 	 * Show all alerts from US state.
 	 * @param model
 	 * @param session
-	 * @param state State to display alerts from.
+	 * @param state USA State to display alerts from.
 	 * @return String for html template name ie wx.html
 	 * 	// https://api.weather.gov/alerts/active?area=MD  
 	 *	// https://api.weather.gov/alerts/active?area={state}
 	 */
 	@GetMapping("/alert")
-	public String alert(Model model,
-			@RequestParam(value = "state", required = false) String state) {
+	public String alert(Model model,// @Size(max = 2, message = "State must be equal to 2 characters")
+			@RequestParam(value = "state", required = true) String state) {
 
-
-		//		WFOIdentifiers wfo = new WFOIdentifiers();
-		//		try {
-		//			wfo.readAndSetData();
-		//		} catch (FileNotFoundException e) {
-		//			// TODO Auto-generated catch block
-		//			e.printStackTrace();
-		//		}
-
-
-		//TODO validate state
+		//validate state		
+		if(state.length() > 2) {			
+			model.addAttribute("error", "State must be equal to 2 characters");		
+			
+			return "err";
+		}
 
 		//String strUrl = "https://api.weather.gov/alerts/active?area="+ state;
 		List<AlertProperties> alertProp = new ArrayList<AlertProperties>();
@@ -157,6 +205,8 @@ public class WeatherController {
 		} catch (IOException e) {
 
 			e.printStackTrace();
+			log.error("Problem with getting alerts", e.getMessage());
+			
 			model.addAttribute("error", "Problem with getting alerts, try reloading");		
 			return "err";
 
@@ -189,8 +239,8 @@ public class WeatherController {
 	 * @param session
 	 * @return
 	 */
-	@GetMapping("/wx")
-	public String wx(Model model) {
+	@GetMapping("/wx22")
+	public String wx22(Model model) {
 		String strUrl = "https://api.weather.gov/gridpoints/LWX/71,94/forecast";
 
 		List<Periods> periods = new ArrayList<Periods>();
@@ -200,6 +250,7 @@ public class WeatherController {
 		} catch (IOException e) {
 
 			e.printStackTrace();
+			log.error("Problem with getting forecast", e.getMessage());
 			model.addAttribute("error", "Problem with getting forecast, try reloading");		
 			return "err";
 		}
@@ -207,7 +258,7 @@ public class WeatherController {
 		String dateTime = service.getLocalDateTime(); 
 
 		model.addAttribute("time", dateTime);	
-		model.addAttribute("mapzoom", "6");
+		model.addAttribute("mapzoom", 6);
 		model.addAttribute("periods", periods);
 
 		model.addAttribute("weathermsg", "Weather Forecast Default Home");
@@ -217,7 +268,7 @@ public class WeatherController {
 
 
 	/**
-	 * Main weather display for forecast based on GPS coords
+	 * Main weather display for forecast based on GPS location
 	 * 
 	 * @param model
 	 * @param session
@@ -228,10 +279,35 @@ public class WeatherController {
 	 * // http://localhost:8080/wx2/?lat=39&lon=-77
 	 */
 	@GetMapping("/wx/")
-	public String wx2(Model model, 
+	public String wx(HttpServletResponse response, Model model, 
 			@RequestParam(value = "lat", required = false) double lat,
-			@RequestParam(value = "lon", required = false) double lon)
+			@RequestParam(value = "lon", required = false) double lon,
+			HttpServletRequest request)
 					throws IOException { 
+
+		response.addHeader("Referrer-Policy", "same-origin");			
+		response.addHeader("User-Agent", "MySpringWeatherApp/1.0 (greg@infomatik.dev) MyAppUsingRestTemplate");	
+		
+	
+		String clientIp = request.getHeader("X-Forwarded-For");
+		if (clientIp == null || clientIp.isEmpty()) {
+		    clientIp = request.getRemoteAddr();
+		} else {
+		    // X-Forwarded-For can be a comma-separated list: "client_ip, proxy1_ip"
+		    clientIp = clientIp.split(",")[0].trim();
+		}
+
+		System.out.println("remote ip address clientIp "+ clientIp);
+		
+		
+		System.out.println("remote ip address "+ request.getRemoteAddr());	
+		log.info("remote ip address "+ request.getRemoteAddr()  + "  " + clientIp);
+		
+
+		if(!validateCoords(lat,lon) ) {
+			model.addAttribute("error", latLonErrorStr);		
+			return "err";
+		}
 
 		String newUrl  = null;
 		//	Observation currentObs = new Observation();
@@ -242,6 +318,7 @@ public class WeatherController {
 		catch (IOException e) {
 
 			e.printStackTrace();
+			log.error("Problem with getting forecast data", e.getMessage());
 			model.addAttribute("error", "Problem with getting forecast data, try reloading");		
 			return "err";
 		}
@@ -250,7 +327,7 @@ public class WeatherController {
 		List<Periods> periods = new ArrayList<Periods>();
 		//List<Stations> stations = service.getStations(lat, lon);
 
-		Properties gridProp ;
+		Properties gridProp;
 		String elevation = "unk";
 
 		try {
@@ -263,6 +340,7 @@ public class WeatherController {
 			elevation = df.format(elevationDouble) + " ft";
 
 		} catch (IOException e) {
+			log.error("Problem with getting grid properties", e.getMessage());
 			System.out.println("Problem getting grid properties, try reloading");			
 		}		
 
@@ -273,6 +351,7 @@ public class WeatherController {
 		} catch (IOException e) {
 
 			e.printStackTrace();
+			log.error("Problem with getting forecast data", e.getMessage());
 			model.addAttribute("error", "Problem with getting forecast data, try reloading");		
 			return "err";
 		}
@@ -298,12 +377,35 @@ public class WeatherController {
 
 		String officeName = "Closest Weather office: " + service.getOfficeName(cwa);
 		String detailslink = "https://forecast.weather.gov/product.php?site=" + cwa + "&issuedby=" + cwa + "&product=AFD&format=CI&version=1&glossary=1";
+		String officeLink = "https://www.weather.gov/"+ cwa;
 
+		//https://www.star.nesdis.noaa.gov/GOES/sector.php?sat=G16&sector=ne
 		String dateTime = service.getLocalDateTime(); 
+		SunData sd = sunData(lat,lon);
 
+
+		String sunrise = sd.getSunrise();
+		String sunset = sd.getSunset();	
+		String timeZone = sd.getTzId();
+		String dayTime = sd.getTotalDayLight();
+
+
+		model.addAttribute("pagetitle", "Weather Forecast for " + location);	
 		model.addAttribute("time", dateTime);	
 
 		//model.addAttribute("currentObs", currentObs);	
+		model.addAttribute("sunrise", sunrise);
+		model.addAttribute("sunset",  sunset);
+		model.addAttribute("timezone","Timezone " + timeZone);
+		model.addAttribute("dayTime",  dayTime);
+		model.addAttribute("solarnoon", sd.getSolarnoon());
+		model.addAttribute("astrorise", sd.getAstroSunrise());
+		model.addAttribute("astroset", sd.getAstroSunset());
+
+		model.addAttribute("civilrise", sd.getCivilSunrise());
+		model.addAttribute("civilset", sd.getCivilSunset());		
+
+
 		model.addAttribute("periods", periods);
 		model.addAttribute("properties", properties);
 		model.addAttribute("radarUrl", radarImgUrl);
@@ -312,7 +414,7 @@ public class WeatherController {
 
 		model.addAttribute("lat", lat);
 		model.addAttribute("lon", lon);
-		model.addAttribute("mapzoom", "9");
+		model.addAttribute("mapzoom", 9);
 
 		model.addAttribute("name", officeName);
 
@@ -320,7 +422,11 @@ public class WeatherController {
 		model.addAttribute("location", location);
 		model.addAttribute("weathermsg", "Weather Forecast for " + location);	
 		model.addAttribute("url", newUrl);
+		model.addAttribute("office", "Forecast Office Code: " + cwa);
 		model.addAttribute("cwa", "Forecast Office: " + cwa);
+
+		model.addAttribute("officeLink", officeLink);		
+
 		model.addAttribute("link", detailslink);
 		model.addAttribute("detailstext", "Area Forecast Discussion");	
 
@@ -329,7 +435,7 @@ public class WeatherController {
 
 
 	/**
-	 * Display NWS observation for closest station to GPS points.
+	 * Display recent NWS observations for closest station to GPS points.
 	 * 
 	 * @param model
 	 * @param session
@@ -340,10 +446,17 @@ public class WeatherController {
 	 * // http://localhost:8080/wx2/?lat=39&lon=-77
 	 */
 	@GetMapping("/obs/")
-	public String obs(Model model, 
-			@RequestParam(value = "lat", required = false) double lat,
-			@RequestParam(value = "lon", required = false) double lon)
+	public String obs(Model model,  HttpServletResponse response,
+			@RequestParam(value = "lat", required = true) double lat,
+			@RequestParam(value = "lon", required = true) double lon)
 					throws IOException { 
+
+
+		if(!validateCoords(lat,lon) ) {
+			model.addAttribute("error", latLonErrorStr);		
+			log.error("Problem with lat long");
+			return "err";
+		}
 
 		List<StationProperties> prop = new ArrayList<StationProperties>();	
 		Observation currentObs = new Observation();
@@ -375,7 +488,7 @@ public class WeatherController {
 	}
 
 	/**
-	 * Show all observation stations in cwa area. Ignore ones that have connection issue like 
+	 * Show all observation stations in cwa area. Ignore ones that have connection issues like 
 	 * file not found.
 	 * @param model
 	 * @param session
@@ -387,9 +500,15 @@ public class WeatherController {
 	 */
 	@GetMapping("/obsall/")
 	public String obsall(Model model,
-			@RequestParam(value = "lat", required = false) double lat,
-			@RequestParam(value = "lon", required = false) double lon)
+			@RequestParam(value = "lat", required = true) double lat,
+			@RequestParam(value = "lon", required = true) double lon)
 					throws IOException { 
+
+		if(!validateCoords(lat,lon) ) {
+			model.addAttribute("error", latLonErrorStr);		
+			log.error("Problem with lat long");
+			return "err";
+		}
 
 		int maxMarkersDisplayed = service.getMaxMarkersDisplayed();
 		Observation currentObs = new Observation();
@@ -445,6 +564,7 @@ public class WeatherController {
 			}
 			catch (IOException e) {
 				e.printStackTrace(); // ignore and move on, bad data from API
+				log.error("Bad data from API, ignoring", e.getMessage()); 
 				continue;				
 			}	
 
@@ -525,8 +645,18 @@ public class WeatherController {
 	 */
 	@GetMapping("/sta/")
 	public String sta(Model model,			
-			@RequestParam(value = "station", required = false) String station)
+			@RequestParam(value = "station", required = true) String station, HttpServletRequest request)
 					throws IOException { 
+
+
+		if(station == null || station.length() > 9)
+		{
+			model.addAttribute("error", "Problem with station ID");		
+			return "err";
+
+		}
+		
+		log.info("remote ip address "+ request.getRemoteAddr());
 
 		// TODO try catch
 		StationProperties sp = service.getObsProperties(station);	
@@ -584,10 +714,19 @@ public class WeatherController {
 	 */
 	@GetMapping("/meteo/")
 	public String obsMeteo(Model model, 
-			@RequestParam(value = "lat", required = false) double lat,
-			@RequestParam(value = "lon", required = false) double lon)
+			@RequestParam(value = "lat", required = true) double lat,
+			@RequestParam(value = "lon", required = true) double lon,
+			 HttpServletRequest request)
 					throws IOException { 
 
+
+		if(!validateCoords(lat,lon) ) {
+			model.addAttribute("error", latLonErrorStr);		
+			return "err";
+		}
+		
+		log.info("meteo: Remote ip address "+ request.getRemoteAddr());
+		
 		Properties gridProp ;
 		String elevation = "unk";
 		boolean US_flag = true;
@@ -607,6 +746,7 @@ public class WeatherController {
 
 		} catch (IOException e) {
 			System.out.println("Problem getting grid properties, try reloading");
+			log.error("Problem getting grid properties, try reloading", e.getMessage()); 
 			US_flag = false;
 		}
 
@@ -739,7 +879,7 @@ public class WeatherController {
 
 		model.addAttribute("lat", lat);
 		model.addAttribute("lon", lon);
-		model.addAttribute("mapzoom", "10");
+		model.addAttribute("mapzoom", 10);
 		model.addAttribute("radarUrl", radarUrl);
 		model.addAttribute("currentObs", currentObs);			
 		model.addAttribute("weathermsg", "Meteo Observations");
@@ -767,12 +907,12 @@ public class WeatherController {
 	 * @throws ParseException 
 	 */
 	@GetMapping("/stations/")
-	public String stations(Model model)throws IOException, ParseException {
+	public String stations(Model model, HttpServletRequest request) throws IOException, ParseException {
 		//String ip = request.getHeader("Proxy-Client-IP");
 		//System.out.println("ip = "+ ip);
-
-		//session.getServletContext().getAuthentication().getDetails()).getRemoteAddress();
-
+		log.info("stations: remote ip address "+ request.getRemoteAddr());
+		
+		
 		//	System.out.println("start stations");
 
 		List<StationProperties> prop = new ArrayList<StationProperties>();			
@@ -864,8 +1004,9 @@ public class WeatherController {
 	 */
 
 	@GetMapping("/forecast/")
-	public String forecast(Model model) throws IOException { 
+	public String forecast(Model model, HttpServletRequest request) throws IOException { 
 
+		log.info("forecast: Remote ip address: " + request.getRemoteAddr());
 		List <LocationMenuProperties> prop = service.readLocationData();
 		model.addAttribute("title", "Custom Forecast Locations");			
 		model.addAttribute("prop", prop);		
@@ -883,8 +1024,9 @@ public class WeatherController {
 	 */
 
 	@GetMapping("/alerts/")
-	public String alerts(Model model) throws IOException { 
+	public String alerts(Model model, HttpServletRequest request) throws IOException { 
 
+		log.info("alerts: Remote ip address: " + request.getRemoteAddr());
 		List <LocationMenuProperties> prop = service.readLocationData();
 		model.addAttribute("title", "Custom Forecast Location List");			
 		model.addAttribute("states", service.alertList);	
@@ -902,8 +1044,9 @@ public class WeatherController {
 	 */
 
 	@GetMapping("/liststations/")
-	public String liststations(Model model) throws IOException { 
+	public String liststations(Model model, HttpServletRequest request) throws IOException { 
 
+		log.info("liststations: Remote ip address: " + request.getRemoteAddr());
 		List <LocationMenuProperties> prop = service.readLocationData();
 		model.addAttribute("title", "Custom Forecast Location List");			
 		model.addAttribute("prop", prop);	
@@ -923,14 +1066,16 @@ public class WeatherController {
 	 */
 
 	@GetMapping("/about/")
-	public String about(Model model) throws IOException { 
+	public String about(Model model, HttpServletRequest request) throws IOException { 
+		
+		log.info("about: Remote ip address: " + request.getRemoteAddr());
 		return "menu/about";
 
 	}
 
 
 	/**
-	 * Display a page with links
+	 * Display a page with links to external websites
 	 * @param model
 	 * @param session
 	 * @return
@@ -938,15 +1083,23 @@ public class WeatherController {
 	 */
 
 	@GetMapping("/links/")
-	public String links(Model model) throws IOException { 
+	public String links(Model model, HttpServletRequest request) throws IOException { 
+		
+		 log.info("links: Remote ip address: " + request.getRemoteAddr());
 		return "menu/links";
 
 	}
 
+	/**
+	 * Display a list of favorite cities to display maps  with drop pins with data
+	 * @param model
+	 * @return
+	 * @throws IOException
+	 */
 	@GetMapping("/maplist/")
-	public String maplist(Model model) throws IOException { 
+	public String maplist(Model model, HttpServletRequest request) throws IOException { 
 
-
+		 log.info("maplist: Remote ip address: " + request.getRemoteAddr());
 		List <LocationMenuProperties> prop = service.readLocationData();
 		model.addAttribute("title", "Custom Map List");			
 		model.addAttribute("prop", prop);	
@@ -966,6 +1119,12 @@ public class WeatherController {
 	public String map2(Model model, 
 			@RequestParam(value = "lat", required = false) double lat,
 			@RequestParam(value = "lon", required = false) double lon) throws IOException { 
+
+		if(!validateCoords(lat,lon) ) {
+			model.addAttribute("error", latLonErrorStr);		
+			return "err";
+		}
+
 
 		int maxMarkersDisplayed = service.getMaxMarkersDisplayed();
 		List <Stations> stationList = new ArrayList<Stations>();
@@ -1006,7 +1165,8 @@ public class WeatherController {
 			try {
 				sp = service.getObsProperties(element);
 			} catch (IOException e) {
-				System.out.println("Problem getting data from station: " + station + "contining...");
+				System.out.println("Problem getting data from station: " + station + "continuing...");
+				log.error("Problem getting data from station:"  + station + "continuing...", e.getMessage()); 
 				continue; //  probably not found in api
 			}		
 
@@ -1061,6 +1221,23 @@ public class WeatherController {
 			@RequestParam(value = "lat", required = false) double lat,
 			@RequestParam(value = "lon", required = false) double lon) throws IOException { 
 
+// Might not need userAgent
+		String url = "https://openstreetmap.org";
+		RestTemplate restTemplate = new RestTemplate();
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("User-Agent", "MySpringWeatherApp/1.0 (greg@infomatik.dev) MyAppUsingRestTemplate");
+		HttpEntity<String> entity = new HttpEntity<>(headers);
+		ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+		
+		String customUserAgent = "\"MySpringWeatherApp/1.0 (greg@infomatik.dev) MyAppUsingRestTemplate\"";
+		model.addAttribute("userAgentId", customUserAgent);		  		  
+		model.addAttribute("User-Agent", response.getBody());
+
+		if(!validateCoords(lat,lon) ) {
+			model.addAttribute("error", latLonErrorStr);		
+			return "err";
+		}
+
 		int maxMarkersDisplayed = service.getMaxMarkersDisplayed();
 		List <Stations> stationList = new ArrayList<Stations>();
 		List<String> listStationStr = new ArrayList<String>();
@@ -1104,7 +1281,8 @@ public class WeatherController {
 			try {
 				sp = service.getObsProperties(element);
 			} catch (IOException e) {
-				System.out.println("Problem getting data from station: " + station + "contining...");
+				System.out.println("Problem getting data from station: " + station + "continuing...");
+				log.error("Problem getting data from station:"  + station + "continuing...", e.getMessage()); 
 				continue; //  probably not found in api
 			}	
 
@@ -1140,7 +1318,7 @@ public class WeatherController {
 		model.addAttribute("lon", lon);
 		model.addAttribute("officeName", officeName);
 		model.addAttribute("size", "width: 1000px; height: 800px;");	
-		model.addAttribute("zoom", "8");
+		model.addAttribute("zoom", 8);
 
 		return "map";
 
@@ -1148,7 +1326,7 @@ public class WeatherController {
 
 
 	/**
-	 * Display a map with favorites markers
+	 * Display a map with favorites markers [TODO]
 	 * @param model
 	 * @param session
 	 * @return
@@ -1198,7 +1376,7 @@ public class WeatherController {
 		model.addAttribute("officeName", " ");
 		model.addAttribute("pointList", pointList);
 		model.addAttribute("size", "width: 1200px; height: 1000px;");
-		model.addAttribute("zoom", "3");
+		model.addAttribute("zoom", 3);
 
 		return "map";
 
@@ -1221,7 +1399,7 @@ public class WeatherController {
 
 
 	/**
-	 * Display a page with links
+	 * Display a page with links to favorite cities for Meteo data.
 	 * @param model
 	 * @param session
 	 * @return
@@ -1230,7 +1408,6 @@ public class WeatherController {
 
 	@GetMapping("/meteolist/")
 	public String meteo(Model model) throws IOException { 
-
 
 		List <LocationMenuProperties> prop = service.readLocationData();
 		model.addAttribute("title", "Custom Meteo Locations");			
@@ -1242,7 +1419,7 @@ public class WeatherController {
 
 
 	/**
-	 * 
+	 * For errors
 	 * @param model
 	 * @param session
 	 * @return
@@ -1252,7 +1429,6 @@ public class WeatherController {
 	@GetMapping("/error/")
 	public String error(Model model) throws IOException { 
 
-
 		model.addAttribute("title", "ERROR PAGE");
 		String error = "ERROR!";
 		String dateTime = service.getLocalDateTime(); 
@@ -1261,6 +1437,9 @@ public class WeatherController {
 		return "err";
 
 	}
+
+
+
 	/**
 	 * Fixed location one for testing
 	 * @param model
@@ -1269,13 +1448,217 @@ public class WeatherController {
 	 */
 	@GetMapping("/boot")
 	public String boot(Model model) {
-		System.out.println("calling boot");
+
+		//System.out.println("calling boot");
 		String dateTime = service.getLocalDateTime(); 
 		Resource fileResource = resourceLoader.getResource("classpath:data/us/place-city.ndjson");
+
 		String s =fileResource.getFilename();
 		//		System.out.println("filename=" + s);
 		model.addAttribute("time", dateTime);	
 		return "test";
 	}
 
-}
+	/**
+	 * Check if coords are within bounds.
+	 * @param lat latitude, double
+	 * @param lon longitude, double
+	 * @return boolean, if within bounds
+	 */
+	private boolean validateCoords(double lat, double lon) {
+
+		if((lat <= 90.0 && lat >= -90.0) && ( lon >= -180.0 && lon <= 180.0 )) {
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	private SunData sunData(double lat, double lon) {
+
+		LocationSunCalc location = new LocationSunCalc(lat, lon);
+
+		TimezoneMapper tzm = new TimezoneMapper();
+		String tzId  = tzm.latLngToTimezoneString( lat, lon);
+
+
+		SunriseSunsetCalculator calculator = new SunriseSunsetCalculator(location, tzId); // "America/New_York"	
+
+		String officialSunrise = calculator.getOfficialSunriseForDate(Calendar.getInstance());
+		String officialSunset = calculator.getOfficialSunsetForDate(Calendar.getInstance());
+
+		String astroSunrise = calculator.getAstronomicalSunriseForDate(Calendar.getInstance());
+		String astroSunset = calculator.getAstronomicalSunsetForDate(Calendar.getInstance());
+		String civilSunrise = calculator.getCivilSunriseForDate(Calendar.getInstance());
+		String civilSunset = calculator.getCivilSunsetForDate(Calendar.getInstance());
+
+
+		BigDecimal officialSunsetInt = calculator.getOfficialSunsetForDateCal(Calendar.getInstance());
+		//System.out.println("officialSunsetInt:" +officialSunsetInt);
+
+		BigDecimal officialSunriseInt = calculator.getOfficialSunriseForDateCal(Calendar.getInstance());
+		//System.out.println("officialSunriseInt:" +officialSunriseInt);
+
+		BigDecimal bd = officialSunsetInt.subtract(officialSunriseInt); // - officialSunriseInt;
+
+		double d =	bd.doubleValue();
+		double d2 = d/2;
+
+
+		BigDecimal bigDecimalValue = BigDecimal.valueOf(d2);
+
+
+		BigDecimal solarnoon = officialSunriseInt.add(bigDecimalValue);
+
+
+		SolarEventCalculator sc = new SolarEventCalculator();
+
+		String totalTime = sc.getLocalTimeAsString(bd);
+		String solarNoonStr = sc.getLocalTimeAsString(solarnoon);
+
+		//Calendar officialSunset = calculator.getOfficialSunsetCalendarForDate(Calendar.getInstance());
+
+
+		SunData  sd = new SunData();
+		sd.setSunrise(officialSunrise);
+		sd.setSunset(officialSunset);
+		sd.setTzId(tzId);
+		sd.setTotalDayLight(totalTime);
+		sd.setSolarnoon(solarNoonStr);
+		sd.setAstroSunrise(astroSunrise);
+		sd.setAstroSunset(astroSunset);
+		sd.setCivilSunrise(civilSunrise);
+		sd.setCivilSunset(civilSunset);
+		return sd;
+
+	}
+	/**
+	 * 
+	 */
+	public	class SunData{
+		String sunrise;
+		String sunset;
+		String totalDayLight;
+		String tzId;
+		String solarnoon;
+		String astroSunrise;
+		String astroSunset;
+		String civilSunrise;
+		String civilSunset;
+
+
+
+		/**
+		 * @return the civilSunrise
+		 */
+		public String getCivilSunrise() {
+			return civilSunrise;
+		}
+		/**
+		 * @param civilSunrise the civilSunrise to set
+		 */
+		public void setCivilSunrise(String civilSunrise) {
+			this.civilSunrise = civilSunrise;
+		}
+		/**
+		 * @return the civilSunset
+		 */
+		public String getCivilSunset() {
+			return civilSunset;
+		}
+		/**
+		 * @param civilSunset the civilSunset to set
+		 */
+		public void setCivilSunset(String civilSunset) {
+			this.civilSunset = civilSunset;
+		}
+		/**
+		 * @return the sunrise
+		 */
+		public String getSunrise() {
+			return sunrise;
+		}
+		/**
+		 * @param sunrise the sunrise to set
+		 */
+		public void setSunrise(String sunrise) {
+			this.sunrise = sunrise;
+		}
+		/**
+		 * @return the sunset
+		 */
+		public String getSunset() {
+			return sunset;
+		}
+		/**
+		 * @param sunset the sunset to set
+		 */
+		public void setSunset(String sunset) {
+			this.sunset = sunset;
+		}
+		/**
+		 * @return the totalDayLight
+		 */
+		public String getTotalDayLight() {
+			return totalDayLight;
+		}
+		/**
+		 * @param totalDayLight the totalDayLight to set
+		 */
+		public void setTotalDayLight(String totalDayLight) {
+			this.totalDayLight = totalDayLight;
+		}
+		/**
+		 * @return the tzId
+		 */
+		public String getTzId() {
+			return tzId;
+		}
+		/**
+		 * @param tzId the tzId to set
+		 */
+		public void setTzId(String tzId) {
+			this.tzId = tzId;
+		}
+		/**
+		 * @return the solarnoon
+		 */
+		public String getSolarnoon() {
+			return solarnoon;
+		}
+		/**
+		 * @param solarnoon the solarnoon to set
+		 */
+		public void setSolarnoon(String solarnoon) {
+			this.solarnoon = solarnoon;
+		}
+		/**
+		 * @return the astroSunrise
+		 */
+		public String getAstroSunrise() {
+			return astroSunrise;
+		}
+		/**
+		 * @param astroSunrise the astroSunrise to set
+		 */
+		public void setAstroSunrise(String astroSunrise) {
+			this.astroSunrise = astroSunrise;
+		}
+		/**
+		 * @return the astroSunset
+		 */
+		public String getAstroSunset() {
+			return astroSunset;
+		}
+		/**
+		 * @param astroSunset the astroSunset to set
+		 */
+		public void setAstroSunset(String astroSunset) {
+			this.astroSunset = astroSunset;
+		}
+
+	}
+
+}// end class

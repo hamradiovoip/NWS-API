@@ -20,6 +20,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -50,6 +54,8 @@ public class WeatherService {
 
 	public final static double AVERAGE_RADIUS_OF_EARTH = 6371;
 
+	private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
+	
 	public double meterConvert = 3.28084;
 	
 	@Value("${stations}")
@@ -134,9 +140,7 @@ public class WeatherService {
 	 * @return
 	 */
 	private boolean validate(double lat, double lon) {
-		
-		
-		
+				
 		return false;
 		
 	}
@@ -172,6 +176,7 @@ public class WeatherService {
 				sp = getObsProperties(station);
 			}
 			catch (IOException e) {
+				log.info("There is a problem with one of the airports/stations skiping...", e.getMessage());
 				e.printStackTrace();
 				continue;				
 			}			
@@ -271,7 +276,8 @@ public class WeatherService {
 				sp = getObsProperties(station);
 			}
 			catch (IOException e) {
-				System.out.println("problem with finding station, skiping.");
+				System.out.println("Problem with finding station, skiping.");
+				log.info("Problem with finding station, skiping...", e.getMessage());
 				//e.printStackTrace();
 				continue;				
 			}			
@@ -310,7 +316,7 @@ public class WeatherService {
 			localProp = pp.getRelativeLocation().getProperties();
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			log.error("Problem with finding Location Properties", e.getMessage());
 			e.printStackTrace();
 		}
 		return localProp;
@@ -338,7 +344,8 @@ public class WeatherService {
 		try {
 			jn = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("Problem getting office");
+			//System.out.println("Problem getting office");
+			log.error("Problem with finding office data", e.getMessage());
 			e.printStackTrace();
 			throw new IOException();
 		}
@@ -382,7 +389,8 @@ public class WeatherService {
 		try {
 			jn = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("Problem getting points data");
+			//System.out.println("Problem getting points data");
+			log.error("Problem getting points data", e.getMessage());
 			throw new IOException();
 		}
 
@@ -413,7 +421,8 @@ public class WeatherService {
 		try {
 			jn = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("Problem getting data from station: " + station);
+			//System.out.println("Problem getting data from station: " + station);
+			log.error("Problem getting points data", e.getMessage());
 			throw new IOException(); //  probably not found in api
 		}	
 
@@ -446,7 +455,8 @@ public class WeatherService {
 		try {
 			jn = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("Prblem with coords from station:"+ station);
+			//System.out.println("Prblem with coords from station:"+ station);
+			log.error("Problem gwith coords from station:"+  "station", e.getMessage());
 			throw new IOException();
 		}
 
@@ -497,7 +507,8 @@ public class WeatherService {
 		try {
 			jn = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("Problem getting grid url");
+			//System.out.println("Problem getting grid url");
+			log.error("Problem getting grid url", e.getMessage());
 			throw new IOException();
 		}
 
@@ -525,7 +536,8 @@ public class WeatherService {
 		try {
 			jn = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("Problem with getting alert data.");
+			//System.out.println("Problem with getting alert data.");
+			log.error("Problem with getting alert data.", e.getMessage());
 			throw new IOException();
 		}
 
@@ -565,7 +577,8 @@ public class WeatherService {
 		try {
 			jn = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("Problem getting forecast data");
+			//System.out.println("Problem getting forecast data");
+			log.error("Problem getting forecast data", e.getMessage());
 			throw new IOException();
 		}
 
@@ -598,7 +611,7 @@ public class WeatherService {
 			sUrl = baseUrl + "/points/"+ lat + ","+ lon;
 			//https://api.weather.gov
 			
-			System.out.println(sUrl);
+		//	System.out.println(sUrl);
 			
 			
 		}
@@ -612,7 +625,8 @@ public class WeatherService {
 		try {
 			jn = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("Problem getting grid properties");
+			//System.out.println("Problem getting grid properties");
+			log.error("Problem with getting grid data.", e.getMessage());
 			throw new IOException();
 		}
 
@@ -631,7 +645,7 @@ public class WeatherService {
 
 		sUrl = baseUrl + "/gridpoints/"+ gridId +"/" + gridX + "," + gridY ;
 		
-		System.out.print("gridPts =" + sUrl);
+	//	System.out.print("gridPts =" + sUrl);
 		
 		// 97 76  LWX
 		url = new URL(sUrl);
@@ -642,7 +656,8 @@ public class WeatherService {
 		try {
 			content = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("Problem with grid url, getting data" + sUrl);
+			//System.out.println("Problem with grid url, getting data" + sUrl);			
+			log.error("Problem with grid url, getting data.", e.getMessage());			
 			e.printStackTrace();
 			return null;
 		}
@@ -680,7 +695,8 @@ public class WeatherService {
 		try {
 			url = new URL(sUrl);
 		} catch (MalformedURLException e) {
-			System.out.println("Problem getting station" + station);
+			//System.out.println("Problem getting station" + station);
+			log.error("Problem getting station" + station, e.getMessage());
 			e.printStackTrace();
 		}	
 
@@ -688,6 +704,7 @@ public class WeatherService {
 			jn = getJsonNode(url);
 		} catch (IOException e) {
 			System.out.println("Problem getting getJsonNode()");
+			log.error("Problem with getting alert data.", e.getMessage());
 			e.printStackTrace();
 			return null;
 		}
@@ -727,7 +744,8 @@ public class WeatherService {
 		try {
 			jn = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("Problem getting staion from coords");
+			//System.out.println("Problem getting staion from coords");
+			log.error("Problem getting staion from coords", e.getMessage());
 			e.printStackTrace();
 			return null;
 		}
@@ -755,7 +773,8 @@ public class WeatherService {
 		try {
 			content = getJsonNode(url);
 		} catch (IOException e) {
-			System.out.println("getJsonNode error");
+			//System.out.println("getJsonNode error");
+			log.error("getJsonNode error", e.getMessage());
 			e.printStackTrace();
 			return null;
 		}
@@ -792,8 +811,10 @@ public class WeatherService {
 			if(i >= 3)
 				throw new IOException(); // tried 3 times and failed
 			try {
-				jn = mapper.readTree(url);
+				jn = mapper.readTree(url); // TODO
 			} catch (IOException e){
+				log.error("IOException", e.getMessage());
+				
 				try {
 					// to sleep 3 seconds
 					Thread.sleep(3000);
@@ -801,10 +822,12 @@ public class WeatherService {
 					// recommended because catching InterruptedException clears interrupt flag
 					Thread.currentThread().interrupt();
 					// you probably want to quit if the thread is interrupted
+					log.error("InterruptedException", e1.getMessage());
 
 					return null;
 				}
 				System.out.println("WeatherService: with url '" + url +  "' read problem: " + i);	
+				log.info("WeatherService: with url '" + url +  "' read problem: " + i);
 				continue; // go again
 			}
 			break;
@@ -831,7 +854,8 @@ public class WeatherService {
 			}
 			return json.toString();
 		} catch (IOException e) {
-			System.out.println("WeatherService: stream/read problem");		
+			System.out.println("WeatherService: stream/read problem");	
+			log.info("WeatherService: stream/read problem", e.getMessage());
 			e.printStackTrace();
 		}
 		return null;
@@ -1058,7 +1082,7 @@ public class WeatherService {
 			}
 			is.close();
 		} catch (IOException e1) {
-
+			log.info("IOException ",e1.getMessage());
 			e1.printStackTrace();
 		}
 

@@ -2,38 +2,46 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="robots" content="noindex, nofollow">	
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex, nofollow">
+	<!-- Sets the referrer policy to origin for the entire page -->
+	<meta name="referrer" content="origin">
 	<title> Weather Home</title>
+	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.ico" />
 </head>
-  
+
 <body style="margin:30;padding:2">
 
-<div th:replace="~{fragments/navbar}"></div>
- 
+	<div th:replace="~{fragments/navbar}"></div>
+	<!--
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+-->
+	<h6 th:text="${time}"> </h6>
 
+	<img src="https://radar.weather.gov/ridge/standard/CONUS_loop.gif" width="800">
+	<P>
 
-<img src="https://radar.weather.gov/ridge/standard/CONUS_loop.gif" width="800" ><P>
+		<!- <img src="https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/ne/GEOCOLOR/1200x1200.jpg" width="800">
+			<P> ->
 
-<!- <img src="https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/ne/GEOCOLOR/1200x1200.jpg"  width="800" ><P> ->
-	
-<img src="https://cdn.star.nesdis.noaa.gov/GOES19/ABI/CONUS/GEOCOLOR/1250x750.jpg"  width="800" ><P>
-	
+				<img src="https://cdn.star.nesdis.noaa.gov/GOES19/ABI/CONUS/GEOCOLOR/1250x750.jpg" width="800">
+			<P>
 
-<img src="https://www.wpc.ncep.noaa.gov/noaa/noaa.gif"  width="800" ><P>
- 
-<img src="https://www.wpc.ncep.noaa.gov/qpf/94ewbg.gif"  width="800" ><P>
- 	
-<hr>
+				<img src="https://www.wpc.ncep.noaa.gov/noaa/noaa.gif" width="800">
+			<P>
 
-<div th:replace="~{fragments/standalonemap}"></div>
-	
-<th:block th:replace="~{fragments/footer}"/>
-  
+				<img src="https://www.wpc.ncep.noaa.gov/qpf/94ewbg.gif" width="800">
+			<P>
+
+				<hr>
+
+			<div th:replace="~{fragments/standalonemap}"></div>
+
+			<th:block th:replace="~{fragments/footer}" />
+
 </body>
-</html>
 
+</html>
