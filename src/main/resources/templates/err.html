@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta name="robots" content="noindex, nofollow" />
+	<meta charset="utf-8">
+	<!-- Sets the referrer policy to origin for the entire page -->
+	<meta name="referrer" content="origin">
+	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
+	<title> [[${title}]] </title>
+
+</head>
+
+<body>
+	<div th:replace="~{fragments/navbar}"></div>
+
+
+	<!--   <h3 style="color: red">Error, something went wrong!</h3>  -->
+
+	<h4 th:text="${error}"></h4>
+
+	<h5>Go to Home Page : <a th:href="@{/}">Home</a></h5>
+
+
+	<th:block th:replace="~{fragments/footer}" />
+</body>
+
+</html>

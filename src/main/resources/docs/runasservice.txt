@@ -1,0 +1,35 @@
+[Unit]
+Description=WeatherAPI
+After=syslog.target network.target
+
+[Service]
+User=user
+Group=mygroup
+
+Environment="JAVA_HOME=/usr/bin/java"
+
+ExecStart=/usr/bin/java -jar /usr/weatherapi/WeatherAPI-0.0.1-SNAPSHOT.jar
+ExecStop=/bin/kill -15 $MAINPID
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
+
+=========
+https://docs.spring.io/spring-boot/how-to/deployment/installing.html#howto.deployment.installing
+https://docs.spring.io/spring-boot/docs/1.4.0.RC1/reference/html/deployment-install.html
+
+systemctl enable weatherapi.service
+
+service weatherapi start
+ 
+ 
+chmod 500 /var/weatherapi/WeatherAPI-0.0.1-SNAPSHOT.jar
+
+chown user:user /var/weatherapi/WeatherAPI-0.0.1-SNAPSHOT.jar
+
+to restart at boot:
+ update-rc.d weatherapi defaults 
+
+
+

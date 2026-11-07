@@ -1,0 +1,31 @@
+<!-- In a file named templates/fragments/styles.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://thymeleaf.org">
+<head>
+	<!-- usage:	<th:block th:replace="~{fragments/styles :: map-styles}"></th:block>-->
+    <th:block th:fragment="map-styles">
+        <style>
+            html,
+            body {
+                height: 100%;
+                margin: 0;
+            }
+
+            .leaflet-container {
+                height: 400px;
+                width: 600px;
+                max-width: 100%;
+                max-height: 100%;
+            }
+
+            .my-label {
+                position: absolute;
+                width: 100px;
+                font-size: 20px;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+</body>
+</html>

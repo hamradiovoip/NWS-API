@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<base target="_top">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex, nofollow" />
+	<!-- Sets the referrer policy to origin for the entire page -->
+	<meta name="referrer" content="origin">
+	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
+	<title> Map </title>
+
+	<th:block th:replace="~{fragments/layout-fragments :: leaflet-assets}"></th:block>
+	<th:block th:replace="~{fragments/styles :: map-styles}"></th:block>
+
+</head>
+
+<body style="margin:30;padding:2">
+	<div th:replace="~{fragments/navbar}"></div>
+
+
+	<div id="mapid" th:attr="style=${size}"></div>
+
+	<!--<div id="mapid" style="width: 1000px; height: 800px;"></div>-->
+
+
+	<script th:inline="javascript">
+		const appUserAgent = [[${userAgentId}]];
+
+		var mylat = [[${lat}]];
+		var mylon = [[${lon}]];
+		var mapsize = [[${mapsize}]];
+		var zoom = [[${zoom}]];
+
+
+		var mymap = L.map('mapid').setView([mylat, mylon], zoom);
+
+		new L.tileLayer(
+			'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			maxZoom: 20,
+			attribution: '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a>',
+			// Pass custom headers via Leaflet tile options if supported by custom proxy, 
+			// or explicitly set the subdomains/custom application hooks.
+			userAgent: appUserAgent
+		}).addTo(mymap);
+
+		var data = [[${pointList}]];
+		var url = [[${url}]];
+
+
+		// var list=$('#pointList').val();
+		console.log("list: " + data.length);
+
+		for (var i = 0; i < data.length; i++) {
+
+
+			if (data[i].lat !== null && data[i].lon !== "") {
+				// window.alert(data[i]);		
+
+				L.marker([data[i].lat, data[i].lon]).addTo(mymap)
+					.bindPopup(
+						'<a href="https://www.weather.gov/wrh/timeseries?site=' + data[i].stationName + '" target="_blank"' + '>' + data[i].stationName + '</a> ' + '<br><b>'
+						+ "name: " + data[i].stationIdentifier + '<br><b>'
+						+ "temp: " + data[i].temperature + '<br><b>'
+						+ "conditions : " + data[i].textDescription + '</b>'
+					);
+			}
+		}
+
+
+		mymap.on('click', function (e) {
+			var lt = String(e.latlng.lat), lg = String(e.latlng.lng);
+			var name = "link";
+			var forecast = '<a href="/wx/?lat=' + lt + '&lon=' + lg + '">' + "FORECAST" + '</a>' + '<p>';
+			var map = '<a href="/map/?lat=' + lt + '&lon=' + lg + '">' + "MAP" + '</a><p>';
+			var meteo = '<a href="/meteo/?lat=' + lt + '&lon=' + lg + '">' + "METEO" + '</a><p>';
+			var displaylinks = forecast + map + meteo;
+
+			var popup = L.popup().setLatLng(e.latlng).setContent(displaylinks).openOn(mymap);
+
+		});
+
+
+
+	</script>
+	<h3 th:text="${officeName}"> </h3>
+
+	&nbsp; &nbsp;
+	<th:block th:replace="~{fragments/footer}" />
+</body>
+
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex, nofollow">
+	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
+	<title> Space Weather </title>
+</head>
+
+<div th:replace="~{fragments/navbar}"></div>
+
+
+<img src="https://services.swpc.noaa.gov/images/animations/geospace/north_america/latest.png" width="600">
+<P>
+	<img src="https://services.swpc.noaa.gov/images/aurora-forecast-northern-hemisphere.jpg" width="600">
+<P>
+	<img src="https://services.swpc.noaa.gov/experimental/images/aurora_dashboard/tonights_static_viewline_forecast.png" width="600">
+<P>
+
+
+<div id="av-orbit-48274">
+	<script>
+		var avOrbitProperties48274 = {
+			size: 'large',
+			lang: 'en'
+		};
+	</script>
+	<script src="https://astroviewer.net/widgets/widgets/orbit48274.js"></script>
+</div>
+<th:block th:replace="~{fragments/footer}" />
+
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta name="robots" content="noindex, nofollow" />
+	<meta charset="utf-8">
+	<!-- Sets the referrer policy to origin for the entire page -->
+	<meta name="referrer" content="origin">
+	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
+</head>
+
+
+<div th:replace="~{fragments/navbar}"></div>
+
+<title th:text="${pagetitle}">Default Title</title>
+
+<body style="margin:30;padding:2">
+
+	<h2><div style="text-align: center;" th:text="${weathermsg}"></div> </h2>
+
+
+	<h6 th:text="${time}"> </h6>
+	<h6 th:text="${name}"> </h6>
+	<h6 th:text="${office}"> </h6>
+	<h6 th:text="${timezone}"> </h6>
+	<h6 th:text="${elevation}"> </h6>
+	<h4>
+		<a th:href="@{${link}}" target="_blank" th:text="${detailstext}"></a>
+	</h4>
+
+	<h4>
+		<a th:href="@{${radarLink}}" target="_blank"> Local Radar Link </a>
+	</h4>
+	<h4>
+		<a th:href="@{${officeLink}}" target="_blank"> Forecast Office Link </a>
+	</h4>
+
+
+	<table border="1" cellpadding="6" rules="cols" align="center">
+		<tr>
+			<th>Sunrise</th>
+			<th>Solar Noon</th>
+			<th>Sunset</th>
+			<th>Length of Day</th>
+			<th>Start Civil twilight</th>
+			<th>End Civil twilight</th>
+		</tr>
+		<tr>
+			<td align="center">
+				<h5 th:text="${sunrise}"></h5>
+			</td>
+			<td align="center">
+				<h5 th:text="${solarnoon}"></h5>
+			</td>
+			<td align="center">
+				<h5 th:text="${sunset}"></h5>
+			</td>
+			<td align="center">
+				<h5 th:text="${dayTime}"></h5>
+			</td>
+
+			<td align="center">
+				<h5 th:text="${civilrise}"></h5>
+			</td>
+			<td align="center">
+				<h5 th:text="${civilset}"></h5>
+			</td>
+
+
+		</tr>
+	</table>
+
+	<pre>
+
+</pre>
+	<table style="width:85%" border="1" class="table table-striped table-responsive-md">
+		<thead>
+			<tr>
+				<th>Icon</th>
+				<th>Name</th>
+				<th>Temp.</th>
+				<th>Forecast Details</th>
+				<th>Wind</th>
+				<th>Short</th>
+				<th>% Precip.</th>
+
+
+			</tr>
+		</thead>
+		<tbody>
+
+			<tr th:each="period:${periods}">
+
+				<td> <img th:src="@{${period.icon}}" alt="wx"> </td>
+				<td th:text="${period.name}"></td>
+				<td th:text="${period.temperature}"></td>
+				<td th:text="${period.detailedForecast}"></td>
+
+				<td th:text="${period.windSpeed}"></td>
+				<td th:text="${period.shortForecast}"></td>
+				<td th:text="${period.probabilityOfPrecipitation.value}"></td>
+			</tr>
+		</tbody>
+	</table>
+	</div>
+	<pre>
+
+
+</pre>
+
+	<img th:src="@{${radarUrl}}" alt="wx">
+
+	<body>
+
+
+		<div th:replace="~{fragments/mapfrag}"></div>
+
+		<img th:src="@{${satLink}}" alt="wx">
+
+		<body>
+
+			<pre>
+
+
+</pre>
+
+			<table border="1" cellpadding="6" rules="cols">
+				<tr>
+					<th>Sunrise</th>
+					<th>Solar Noon</th>
+					<th>Sunset</th>
+					<th>Length of Day</th>
+					<th>Start Civil twilight</th>
+					<th>End Civil twilight</th>
+					<th>Astro Sunrise</th>
+					<th>Astro Sunset</th>
+				</tr>
+				<tr>
+					<td align="center">
+						<h5 th:text="${sunrise}"></h5>
+					</td>
+					<td align="center">
+						<h5 th:text="${solarnoon}"></h5>
+					</td>
+					<td align="center">
+						<h5 th:text="${sunset}"></h5>
+					</td>
+					<td align="center">
+						<h5 th:text="${dayTime}"></h5>
+					</td>
+
+					<td align="center">
+						<h5 th:text="${civilrise}"></h5>
+					</td>
+					<td align="center">
+						<h5 th:text="${civilset}"></h5>
+					</td>
+
+					<td align="center">
+						<h5 th:text="${astrorise}"></h5>
+					</td>
+					<td align="center">
+						<h5 th:text="${astroset}"></h5>
+					</td>
+				</tr>
+			</table>
+
+			<pre>
+
+
+</pre>
+
+			<th:block th:replace="~{fragments/footer}" />
+		</body>
+
+</html>

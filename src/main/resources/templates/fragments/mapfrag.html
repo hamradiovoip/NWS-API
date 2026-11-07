@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="utf-8">
+	<!-- Sets the referrer policy to origin for the entire page -->
+	<meta name="referrer" content="origin">
+
+	<!-- Pulls in all CSS assets from the layout file  -->
+	<th:block th:replace="~{fragments/layout-fragments :: leaflet-assets}"></th:block>
+	<th:block th:replace="~{fragments/styles :: map-styles}"></th:block>
+	
+</head>
+
+<body>
+
+	<!--	<div id="mapid" th:attr="style=${size}"></div>-->
+	<div id="mapid" style="width: 600px; height: 600px;"></div>
+
+	<script th:inline="javascript">
+		var mylat = [[${lat}]];
+		var mylon = [[${lon}]];
+		var mapzoom = [[${mapzoom}]];
+		var mymap = L.map('mapid').setView([mylat, mylon], mapzoom);
+
+		new L.tileLayer(
+			'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			maxZoom: 19,
+			referrerPolicy: origin
+		}).addTo(mymap);
+
+
+		mymap.on('click', function (e) {
+			var lt = String(e.latlng.lat), lg = String(e.latlng.lng);
+			var name = "link";
+			var forecast = '<a href="/wx/?lat=' + lt + '&lon=' + lg + '">' + "FORECAST" + '</a>' + '<p>';
+			var map = '<a href="/map/?lat=' + lt + '&lon=' + lg + '">' + "MAP" + '</a><p>';
+			var meteo = '<a href="/meteo/?lat=' + lt + '&lon=' + lg + '">' + "METEO" + '</a><p>';
+			var displaylinks = forecast + map + meteo;
+			var popup = L.popup().setLatLng(e.latlng).setContent(displaylinks).openOn(mymap);
+
+		});
+
+
+		L.marker([mylat, mylon]).addTo(mymap).bindPopup("Center");
+
+
+		setTimeout(function () {
+			mymap.invalidateSize();
+		}, 100);
+
+	</script>
+
+</body>
+
+</html>

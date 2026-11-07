@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="robots" content="noindex, nofollow" />
+	<!-- Sets the referrer policy to origin for the entire page -->
+	<meta name="referrer" content="origin">
+	<link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
+	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
+	<title>City search</title>
+</head>
+
+<body>
+
+	<select id="someId">
+		<option selected="selected" value="">Choose one...</option>
+		<option th:each="object : ${listStationStr}" th:value="${object}" th:text="${object}">Options</option>
+	</select>
+
+</html>

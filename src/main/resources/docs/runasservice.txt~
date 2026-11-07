@@ -1,0 +1,16 @@
+[Unit]
+Description=WeatherAPI
+After=syslog.target network.target
+
+[Service]
+User=myapp
+Group=myapp
+
+Environment="JAVA_HOME=/usr/bin/java"
+
+ExecStart=${JAVA_HOME} -jar /root/WeatherAPI-0.0.1-SNAPSHOT.jar
+ExecStop=/bin/kill -15 $MAINPID
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
