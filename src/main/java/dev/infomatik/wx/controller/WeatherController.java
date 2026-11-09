@@ -11,7 +11,9 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,7 +84,7 @@ public class WeatherController {
 
 	/** NWS base url TODO put in prop file */
 	final String baseUrl = "https://api.weather.gov";
-	
+
 	private static final Logger log = LoggerFactory.getLogger(WeatherController.class);
 
 	/**
@@ -103,10 +105,10 @@ public class WeatherController {
 	@Autowired
 	private ResourceLoader resourceLoader;
 
-	  // List of extension footprints used by scanners
-    private static final List<String> BLACKLISTED_EXTENSIONS = List.of(
-            ".php", ".env", ".git", ".yaml", ".yml", ".bak", ".ini", ".conf", ".sql"
-    );
+	// List of extension footprints used by scanners
+	private static final List<String> BLACKLISTED_EXTENSIONS = List.of(
+			".php", ".env", ".git", ".yaml", ".yml", ".bak", ".ini", ".conf", ".sql"
+			);
 
 	/**
 	 * Check if lat and lon are valid and not large numbers, buffer overflow etc.
@@ -123,8 +125,8 @@ public class WeatherController {
 		return truncatedNumber;
 
 	}
-	
-	
+
+
 	/**
 	 * 
 	 * @param str
@@ -138,7 +140,7 @@ public class WeatherController {
 			return false;
 		}
 	}
-   
+
 
 	/**
 	 * 
@@ -148,11 +150,11 @@ public class WeatherController {
 	@ResponseBody
 	public String robots(HttpServletResponse response,HttpServletRequest request) {
 		log.info("robots");
-				
+
 		System.out.println("robots remote ip address "+ request.getRemoteAddr());	
 		log.info("robots remote ip address "+ request.getRemoteAddr());
 		return "User-agent: *\n" +
-				"Disallow: /";
+		"Disallow: /";
 	}
 
 	/**
@@ -161,18 +163,65 @@ public class WeatherController {
 	 * @param model
 	 * @return
 	 */
-    @GetMapping("/")
-    public String index(HttpServletRequest request, Model model) {
-        // Because of your application.properties, this now returns the real IP
-        
-        log.info("Index remote ip address: " + request.getRemoteAddr());
-        
+	@GetMapping("/")
+	public String index(HttpServletRequest request, Model model, HttpServletResponse httpResponse) {
+
+
+		String userAgent = request.getHeader("User-Agent");
+
+		// 1. Drop requests missing a User-Agent entirely
+		if (userAgent == null || userAgent.isBlank()) {
+
+
+			log.warn ("Possible spammers: User-Agent empty");
+			//httpResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+			//return "";
+		}    	    	
+
+		log.info("Index remote ip address: " + request.getRemoteAddr() + " Header User-Agent = " + userAgent);
+
 		String dateTime = service.getLocalDateTime();
 		model.addAttribute("time", dateTime);	
-        return "index";
-    }
-    
-    
+		return "index";
+	}
+
+	
+	/**
+	 * Handle bad pages/requests
+	 * @param request
+	 * @return
+	 */
+	/*
+	 * // @GetMapping("/error")
+	 * 
+	 * @RequestMapping(value = {"/error", "/**"}) public ResponseEntity<Map<String,
+	 * Object>> handleError(HttpServletRequest request) { // Retrieve the path that
+	 * the user actually attempted to visit String requestedUri = (String)
+	 * request.getAttribute("jakarta.servlet.error.request_uri");
+	 * 
+	 * // Check for specific malicious probes (like scanning for configuration
+	 * files) if (requestedUri != null && (requestedUri.contains(".env") ||
+	 * requestedUri.contains(".git") || requestedUri.contains("test") ||
+	 * requestedUri.contains(".wp") )) {
+	 * 
+	 * // Log the bad actor IP and the path they were probing
+	 * System.err.println("ALERT: Security probe detected! IP: " +
+	 * request.getRemoteAddr() + " targeted: " + requestedUri); String userAgent =
+	 * request.getHeader("User-Agent");
+	 * log.warn("ALERT: Security probe detected! IP: " + request.getRemoteAddr() +
+	 * " targeted: " + requestedUri);
+	 * 
+	 * 
+	 * // You can immediately drop them with a 400 Bad Request or 403 Forbidden to
+	 * deter them return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); }
+	 * 
+	 * // Standard fallback structure for normal 404 errors (or 500 errors)
+	 * Map<String, Object> errorBody = new HashMap<>(); errorBody.put("status",
+	 * HttpStatus.NOT_FOUND.value()); errorBody.put("error", "Not Found");
+	 * errorBody.put("message", "The requested page or endpoint does not exist.");
+	 * 
+	 * return new ResponseEntity<>(errorBody, HttpStatus.NOT_FOUND); }
+	 */
 
 	/**
 	 * Show all alerts from US state.
@@ -190,7 +239,7 @@ public class WeatherController {
 		//validate state		
 		if(state.length() > 2) {			
 			model.addAttribute("error", "State must be equal to 2 characters");		
-			
+
 			return "err";
 		}
 
@@ -206,7 +255,7 @@ public class WeatherController {
 
 			e.printStackTrace();
 			log.error("Problem with getting alerts", e.getMessage());
-			
+
 			model.addAttribute("error", "Problem with getting alerts, try reloading");		
 			return "err";
 
@@ -287,22 +336,22 @@ public class WeatherController {
 
 		response.addHeader("Referrer-Policy", "same-origin");			
 		response.addHeader("User-Agent", "MySpringWeatherApp/1.0 (greg@infomatik.dev) MyAppUsingRestTemplate");	
-		
-	
+
+
 		String clientIp = request.getHeader("X-Forwarded-For");
 		if (clientIp == null || clientIp.isEmpty()) {
-		    clientIp = request.getRemoteAddr();
+			clientIp = request.getRemoteAddr();
 		} else {
-		    // X-Forwarded-For can be a comma-separated list: "client_ip, proxy1_ip"
-		    clientIp = clientIp.split(",")[0].trim();
+			// X-Forwarded-For can be a comma-separated list: "client_ip, proxy1_ip"
+			clientIp = clientIp.split(",")[0].trim();
 		}
 
 		System.out.println("remote ip address clientIp "+ clientIp);
-		
-		
+
+
 		System.out.println("remote ip address "+ request.getRemoteAddr());	
 		log.info("remote ip address "+ request.getRemoteAddr()  + "  " + clientIp);
-		
+
 
 		if(!validateCoords(lat,lon) ) {
 			model.addAttribute("error", latLonErrorStr);		
@@ -655,7 +704,7 @@ public class WeatherController {
 			return "err";
 
 		}
-		
+
 		log.info("remote ip address "+ request.getRemoteAddr());
 
 		// TODO try catch
@@ -716,7 +765,7 @@ public class WeatherController {
 	public String obsMeteo(Model model, 
 			@RequestParam(value = "lat", required = true) double lat,
 			@RequestParam(value = "lon", required = true) double lon,
-			 HttpServletRequest request)
+			HttpServletRequest request)
 					throws IOException { 
 
 
@@ -724,9 +773,9 @@ public class WeatherController {
 			model.addAttribute("error", latLonErrorStr);		
 			return "err";
 		}
-		
+
 		log.info("meteo: Remote ip address "+ request.getRemoteAddr());
-		
+
 		Properties gridProp ;
 		String elevation = "unk";
 		boolean US_flag = true;
@@ -911,8 +960,8 @@ public class WeatherController {
 		//String ip = request.getHeader("Proxy-Client-IP");
 		//System.out.println("ip = "+ ip);
 		log.info("stations: remote ip address "+ request.getRemoteAddr());
-		
-		
+
+
 		//	System.out.println("start stations");
 
 		List<StationProperties> prop = new ArrayList<StationProperties>();			
@@ -1067,7 +1116,7 @@ public class WeatherController {
 
 	@GetMapping("/about/")
 	public String about(Model model, HttpServletRequest request) throws IOException { 
-		
+
 		log.info("about: Remote ip address: " + request.getRemoteAddr());
 		return "menu/about";
 
@@ -1084,8 +1133,8 @@ public class WeatherController {
 
 	@GetMapping("/links/")
 	public String links(Model model, HttpServletRequest request) throws IOException { 
-		
-		 log.info("links: Remote ip address: " + request.getRemoteAddr());
+
+		log.info("links: Remote ip address: " + request.getRemoteAddr());
 		return "menu/links";
 
 	}
@@ -1099,7 +1148,7 @@ public class WeatherController {
 	@GetMapping("/maplist/")
 	public String maplist(Model model, HttpServletRequest request) throws IOException { 
 
-		 log.info("maplist: Remote ip address: " + request.getRemoteAddr());
+		log.info("maplist: Remote ip address: " + request.getRemoteAddr());
 		List <LocationMenuProperties> prop = service.readLocationData();
 		model.addAttribute("title", "Custom Map List");			
 		model.addAttribute("prop", prop);	
@@ -1221,14 +1270,14 @@ public class WeatherController {
 			@RequestParam(value = "lat", required = false) double lat,
 			@RequestParam(value = "lon", required = false) double lon) throws IOException { 
 
-// Might not need userAgent
+		// Might not need userAgent
 		String url = "https://openstreetmap.org";
 		RestTemplate restTemplate = new RestTemplate();
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("User-Agent", "MySpringWeatherApp/1.0 (greg@infomatik.dev) MyAppUsingRestTemplate");
 		HttpEntity<String> entity = new HttpEntity<>(headers);
 		ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-		
+
 		String customUserAgent = "\"MySpringWeatherApp/1.0 (greg@infomatik.dev) MyAppUsingRestTemplate\"";
 		model.addAttribute("userAgentId", customUserAgent);		  		  
 		model.addAttribute("User-Agent", response.getBody());

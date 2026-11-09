@@ -9,6 +9,7 @@
 	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
 	<title> [[${title}]] </title>
 </head>
+<th:block th:replace="~{fragments/sharedlayouts :: style-assets}"></th:block>
 
 <div th:replace="~{fragments/navbar}"></div>
 

@@ -1,0 +1,37 @@
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+
+<head>
+	<base target="_top">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex, nofollow" />
+	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
+	<title>Error</title>
+
+	<!-- Pulls in all CSS assets from the layout file  -->
+	<th:block th:replace="~{fragments/layout-fragments :: leaflet-assets}"></th:block>
+	<th:block th:replace="~{fragments/styles :: map-styles}"></th:block>
+	<th:block th:replace="~{fragments/sharedlayouts :: style-assets}"></th:block>
+	
+</head>
+
+<body style="margin:30;padding:2">
+
+
+	<div th:replace="~{fragments/navbar}"></div>
+
+
+	ERROR! <P>
+
+
+	<span th:text="${error}" />
+
+	<pre>
+
+
+</pre>
+
+</body>
+
+</html>
