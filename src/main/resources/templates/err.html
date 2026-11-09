@@ -7,15 +7,18 @@
 	<!-- Sets the referrer policy to origin for the entire page -->
 	<meta name="referrer" content="origin">
 	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
-	<title> [[${title}]] </title>
-
+	<title> ERROR </title>
+	<th:block th:replace="~{fragments/sharedlayouts :: style-assets}"></th:block>
 </head>
 
+
 <body>
+	
+	
 	<div th:replace="~{fragments/navbar}"></div>
 
 
-	<!--   <h3 style="color: red">Error, something went wrong!</h3>  -->
+	  <h3 style="color: red">Error, something went wrong!</h3>  
 
 	<h4 th:text="${error}"></h4>
 

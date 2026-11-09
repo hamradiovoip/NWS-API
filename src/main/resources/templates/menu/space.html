@@ -6,11 +6,12 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex, nofollow">
 	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
+	<th:block th:replace="~{fragments/sharedlayouts :: style-assets}"></th:block>
+
 	<title> Space Weather </title>
 </head>
 
 <div th:replace="~{fragments/navbar}"></div>
-
 
 <img src="https://services.swpc.noaa.gov/images/animations/geospace/north_america/latest.png" width="600">
 <P>

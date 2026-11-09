@@ -7,7 +7,12 @@
 	<!-- Sets the referrer policy to origin for the entire page -->
 	<meta name="referrer" content="origin">
 	<link rel="shortcut icon" type="image/x-icon" th:href="@{/images/favicon.ico}" />
+	<th:block th:replace="~{fragments/layout-fragments :: leaflet-assets}"></th:block>
+	<th:block th:replace="~{fragments/styles :: map-styles}"></th:block>
+	<th:block th:replace="~{fragments/sharedlayouts :: style-assets}"></th:block>
+
 </head>
+
 
 
 <div th:replace="~{fragments/navbar}"></div>
